@@ -3,17 +3,41 @@
 version = 3
 
 [[package]]
+name = "aes"
+version = "0.1.0"
+source = "git+https://github.com/o1810156/aes.git?rev=917a082e5916b5f4177584f6fe37b7576bd3b9e8#917a082e5916b5f4177584f6fe37b7576bd3b9e8"
+dependencies = [
+ "const_panic",
+ "lazy_static",
+ "rand",
+]
+
+[[package]]
 name = "aes_attack"
 version = "0.1.0"
 dependencies = [
+ "aes",
+ "anyhow",
  "rand",
 ]
+
+[[package]]
+name = "anyhow"
+version = "1.0.58"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb07d2053ccdbe10e2af2995a2f116c1330396493dc1269f6a91d0ae82e19704"
 
 [[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "const_panic"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c0358e41e90e443c69b2b2811f6ec9892c228b93620634cf4344fe89967fa9f"
 
 [[package]]
 name = "getrandom"
@@ -25,6 +49,12 @@ dependencies = [
  "libc",
  "wasi",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"

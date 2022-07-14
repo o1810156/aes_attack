@@ -12,13 +12,17 @@ mod aes_limited {
         let round_keys = generate_round_keys(&cipher_key);
         // round 0
         add_round_key(&mut state, &round_keys[0]);
-        // round 1 ~ 3
-        for i in 1..=3 {
+        // round 1 ~ 2
+        for i in 1..=2 {
             sub_bytes(&mut state);
             shift_rows(&mut state);
             mix_columns(&mut state);
             add_round_key(&mut state, &round_keys[i]);
         }
+
+        // round 3
+        sub_bytes(&mut state);
+        shift_rows(&mut state);
 
         let mut res = [0u8; 16];
         for i in 0..16 {
@@ -61,12 +65,9 @@ mod aes_limited {
     }
 }
 
-#[macro_use]
-extern crate anyhow;
-
-use aes::{dump_array, generate_round_keys, GF256};
+use aes::GF256;
+use aes::{dump_array, generate_round_keys};
 use aes_limited::*;
-use anyhow::Result;
 use rand::prelude::*;
 
 #[rustfmt::skip]
@@ -109,111 +110,41 @@ const INV_SBOX: [u8;256] = [
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D
 ];
 
-fn key_guess(ciphers: &[[u8; 16]; 256]) -> Vec<Vec<GF256>> {
-    let mut res = vec![vec![]; 16];
-    for i in 0..16 {
-        for k in 0_u8..=255 {
-            let mut s = GF256::new(0);
-            for j in 0..=255 {
-                s ^= GF256::new(INV_SBOX[(ciphers[j][i] ^ k) as usize]);
-            }
+fn key_recovery(cipher: &[GF256; 16]) -> [GF256; 16] {
+    let mut res = [GF256::new(0); 16];
 
-            if s == GF256::new(0) {
-                res[i].push(GF256::new(k));
-            }
+    for i in 0..4 {
+        res[i] += GF256::new(0x08);
+    }
+
+    let s7 = cipher[0];
+    res[7] = GF256::new(INV_SBOX[s7.get_u8() as usize]);
+    let s11 = cipher[4];
+    res[11] = GF256::new(INV_SBOX[s11.get_u8() as usize]);
+    let s15 = cipher[8];
+    res[15] = GF256::new(INV_SBOX[s15.get_u8() as usize]);
+    let s3 = cipher[12];
+    res[3] = GF256::new(INV_SBOX[s3.get_u8() as usize]);
+
+    for i in 1..4 {
+        for j in 0..4 {
+            res[j * 4 + i - 1] = cipher[j * 4 + i] + cipher[j * 4 + i - 1];
         }
     }
 
     res
 }
 
-fn kr_sub(
-    count: usize,
-    key_index: &mut [usize; 16],
-    guessed_keys: &[Vec<GF256>],
-    ciphers: &[[u8; 16]; 256],
-    plain_texts: &[[u8; 16]; 256],
-    result: &mut Option<[[GF256; 16]; 5]>,
-) {
-    if result.is_some() {
-        return;
-    }
-
-    if count <= 15 {
-        let len = guessed_keys[count].len();
-        for i in 0..len {
-            if result.is_some() {
-                return;
-            }
-
-            key_index[count] = i;
-            kr_sub(
-                count + 1,
-                key_index,
-                guessed_keys,
-                ciphers,
-                plain_texts,
-                result,
-            );
-        }
-        return;
-    }
-
-    let mut round4_key = [GF256::new(0); 16];
-    key_index
-        .iter()
-        .enumerate()
-        .for_each(|(i, &k)| round4_key[i] = guessed_keys[i][k]);
-
-    // dump_array(&round4_key, "round4_key");
-
-    let keys = inv_generate_round_keys(&round4_key);
-    let mut key = [0_u8; 16];
-    for i in 0..16 {
-        key[i] = keys[0][i].get_u8();
-    }
-
-    for (i, cipher) in ciphers.iter().enumerate() {
-        let c = aes_4r(&plain_texts[i], &key);
-
-        if &c != cipher {
-            return;
-        }
-    }
-
-    *result = Some(keys);
-}
-
-fn key_recovery(
-    ciphers: &[[u8; 16]; 256],
-    plain_texts: &[[u8; 16]; 256],
-) -> Option<[[GF256; 16]; 5]> {
-    let guessed_keys = key_guess(ciphers);
-
-    let mut result = None;
-    let mut key_index = [0; 16];
-    kr_sub(
-        0,
-        &mut key_index,
-        &guessed_keys,
-        ciphers,
-        plain_texts,
-        &mut result,
-    );
-
-    result
-}
-
-fn inv_generate_round_keys(round4_key: &[GF256; 16]) -> [[GF256; 16]; 5] {
+fn inv_generate_round_keys(round3_key: &[GF256; 16]) -> [[GF256; 16]; 4] {
     let rcon = [
         0x01, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d,
         0x9a,
     ];
 
-    let mut res = [[GF256::new(0); 16]; 5];
+    let mut res = [[GF256::new(0); 16]; 4];
 
     for i in 0..16 {
-        res[4][i] = round4_key[i];
+        res[3][i] = round3_key[i];
     }
 
     /* hint
@@ -225,7 +156,7 @@ fn inv_generate_round_keys(round4_key: &[GF256; 16]) -> [[GF256; 16]; 5] {
 
      */
 
-    for i in (1..5).rev() {
+    for i in (1..4).rev() {
         for j in (1..4).rev() {
             for k in 0..4 {
                 res[i - 1][j + 4 * k] = res[i][j + 4 * k] ^ res[i][j + 4 * k - 1];
@@ -261,11 +192,14 @@ fn inv_generate_round_keys(round4_key: &[GF256; 16]) -> [[GF256; 16]; 5] {
     res
 }
 
-fn balanced_prop() {
+fn main() {
     let mut sum = [0u8; 16];
 
     let mut rng = rand::thread_rng();
     let key: [u8; 16] = rng.gen();
+
+    let gf_key = GF256::from_u8array(&key).unwrap();
+    let keys = generate_round_keys(&gf_key);
 
     for a in 0_u8..=255 {
         let mut plain = [0; 16];
@@ -278,23 +212,11 @@ fn balanced_prop() {
         }
     }
 
-    let sum = GF256::from_u8array(&sum).unwrap();
-    dump_array(&sum, "Balanced Property Sum Check for R3");
-}
-
-fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
-    let mut rng = rand::thread_rng();
-    let key: [u8; 16] = rng.gen();
-
-    let gf_key = GF256::from_u8array(&key).unwrap();
-    let keys = generate_round_keys(&gf_key);
+    dump_array(&sum, "Balanced Property Sum Check");
 
     let mut sum = [0u8; 16];
-    let mut ciphers = [[0u8; 16]; 256];
-    let mut plain_texts = [[0u8; 16]; 256];
-    let constant_p = rng.gen();
     for a in 0_u8..=255 {
-        let mut plain = [constant_p; 16];
+        let mut plain = [0; 16];
         plain[0] = a;
 
         let cipher = aes_4r(&plain, &key);
@@ -302,62 +224,17 @@ fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
         for i in 0..16 {
             sum[i] ^= cipher[i];
         }
-
-        plain_texts[a as usize] = plain;
-        ciphers[a as usize] = cipher;
     }
 
     let sum = GF256::from_u8array(&sum).unwrap();
+    let r3_key = key_recovery(&sum);
 
-    if verbose {
-        dump_array(&sum, "Balanced Property Sum Check for R4");
-        for (i, key) in keys.iter().enumerate().take(5) {
-            dump_array(key, format!("key {}", i).as_str());
-        }
-    }
+    dump_array(&keys[3], "Original R3 Key");
+    dump_array(&r3_key, "Recovered R3 Key");
 
-    let rec_keys = key_recovery(&ciphers, &plain_texts);
+    let rec_keys = inv_generate_round_keys(&r3_key);
 
-    let rec_keys = match rec_keys {
-        Some(k) => k,
-        None => {
-            return Err(anyhow!("key recovery failed"));
-        }
-    };
-
-    if verbose {
-        for (i, key) in rec_keys.iter().enumerate().take(5) {
-            dump_array(key, format!("rec key {}", i).as_str());
-        }
-    }
-
-    let result = &keys[0] == &rec_keys[0];
-
-    Ok(result)
-}
-
-use std::env::args;
-
-fn main() -> Result<()> {
-    balanced_prop();
-
-    let verbose = true;
-    let result = integral_key_recovery_attack_for_r4_aes(verbose)?;
-    println!("{}", result);
-
-    let mut args = args();
-    let times = args
-        .nth(1)
-        .and_then(|a| a.parse::<usize>().ok())
-        .unwrap_or(10);
-
-    let mut success = 0;
-    for _ in 0..times {
-        let result = integral_key_recovery_attack_for_r4_aes(false)?;
-        success += if result { 1 } else { 0 };
-    }
-
-    println!("success: {}\nresult: {}", success, success == times);
-
-    Ok(())
+    dump_array(&gf_key, "Original Key");
+    dump_array(&rec_keys[0], "Recovered Key");
+    println!("result: {}", &rec_keys[0] == &gf_key);
 }

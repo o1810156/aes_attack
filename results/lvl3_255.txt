@@ -1,0 +1,37 @@
+level 3 Key Recovery Attack against 3 Round AES
+query: 255
+==== original_plain ====
+93 e1 cf 7d 
+86 af ab b5 
+33 2c 3a 0e 
+2b 3d c1 ec 
+===========
+==== original_cipher ====
+53 23 b5 2e 
+fe 60 9d 7f 
+99 3b a1 36 
+77 47 10 08 
+===========
+Partial Key Guess Start: 0
+Cands num @ [0] : 1
+Partial Key Guess Start: 1
+Cands num @ [1] : 1
+Partial Key Guess Start: 2
+Cands num @ [2] : 1
+Partial Key Guess Start: 3
+Cands num @ [3] : 1
+==== Original key ====
+b4 8f 33 79 
+d5 ec ec 27 
+80 2e 7e d5 
+72 44 e5 72 
+===========
+==== Recovered key ====
+b4 8f 33 79 
+d5 ec ec 27 
+80 2e 7e d5 
+72 44 e5 72 
+===========
+true
+success: 100
+result: true

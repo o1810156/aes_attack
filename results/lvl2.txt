@@ -1,0 +1,76 @@
+level 2 Integral Key Recovery Attack against 4 Round AES
+==== Balanced Property Sum Check for R3 ====
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+===========
+==== Balanced Property Sum Check for R4 ====
+9a ef 62 ac 
+6e c8 b4 12 
+1c cc 29 45 
+9f e4 7e 59 
+===========
+==== key 0 ====
+df 25 06 3c 
+b4 85 dc ca 
+1f 0e 79 55 
+72 e6 b6 4a 
+===========
+==== key 1 ====
+aa 8f 89 b5 
+48 cd 11 db 
+c9 c7 be eb 
+99 7f c9 83 
+===========
+==== key 2 ====
+11 9e 17 a2 
+a1 6c 7d a6 
+25 e2 5c b7 
+4c 33 fa 79 
+===========
+==== key 3 ====
+31 af b8 1a 
+08 64 19 bf 
+93 71 2d 9a 
+76 45 bf c6 
+===========
+==== key 4 ====
+31 9e 26 3c 
+b0 d4 cd 72 
+27 56 7b e1 
+d4 91 2e e8 
+===========
+==== rec key 0 ====
+df 25 06 3c 
+b4 85 dc ca 
+1f 0e 79 55 
+72 e6 b6 4a 
+===========
+==== rec key 1 ====
+aa 8f 89 b5 
+48 cd 11 db 
+c9 c7 be eb 
+99 7f c9 83 
+===========
+==== rec key 2 ====
+11 9e 17 a2 
+a1 6c 7d a6 
+25 e2 5c b7 
+4c 33 fa 79 
+===========
+==== rec key 3 ====
+31 af b8 1a 
+08 64 19 bf 
+93 71 2d 9a 
+76 45 bf c6 
+===========
+==== rec key 4 ====
+31 9e 26 3c 
+b0 d4 cd 72 
+27 56 7b e1 
+d4 91 2e e8 
+===========
+true
+success: 100
+result: true

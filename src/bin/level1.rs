@@ -1,28 +1,48 @@
 use aes_attack::*;
 use rand::seq::SliceRandom;
 
+use std::env::args;
+
 fn main() {
     println!("level 1 SBOX's DDT");
 
     let table = ddt::sbox_ddt();
 
-    show(&table);
+    let sbox_dist = show(&table);
 
     let const_sbox = (0..=255).collect::<Vec<u8>>();
     let const_ddt = ddt::make_ddt(&const_sbox);
     show(&const_ddt);
 
+    let mut args = args();
+    let times = args
+        .nth(1)
+        .and_then(|a| a.parse::<usize>().ok())
+        .unwrap_or(5);
+
+    println!("times: {}", times);
+
+    let mut dists = Vec::new();
+
     let mut rng = rand::thread_rng();
-    for _ in 0..5 {
+    for _ in 0..times {
         let mut random_sbox = (0..=255).collect::<Vec<u8>>();
         random_sbox.shuffle(&mut rng);
 
         let random_ddt = ddt::make_ddt(&random_sbox);
-        show(&random_ddt);
+        let dist = show(&random_ddt);
+        dists.push(dist);
+    }
+
+    println!("sbox dist: {}", sbox_dist);
+    for (i, dist) in dists.into_iter().enumerate() {
+        if sbox_dist > dist {
+            println!("More minimum distribution found! @ [{}]: {}", i, dist);
+        }
     }
 }
 
-fn show(table: &Vec<Vec<usize>>) {
+fn show(table: &Vec<Vec<usize>>) -> f64 {
     print!("   |");
     for i in 0..256 {
         print!("  {:02x}", i);
@@ -76,7 +96,10 @@ fn show(table: &Vec<Vec<usize>>) {
     }
 
     println!("sum: {}", sum);
-    println!("Distributed: {}", sum as f64 / (256 * 256) as f64);
+    let res = sum as f64 / (256 * 256) as f64;
+    println!("Distributed: {}", res);
 
     println!("\n==========\n");
+
+    res
 }

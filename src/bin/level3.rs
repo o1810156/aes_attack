@@ -472,6 +472,8 @@ fn key_recovery_attack_using_differential_cryptanalysis(query: u8, verbose: bool
 use std::env::args;
 
 fn main() -> Result<()> {
+    println!("level 3 Key Recovery Attack against 3 Round AES");
+
     let mut args = args();
     let query = args
         .nth(1)

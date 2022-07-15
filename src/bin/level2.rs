@@ -339,6 +339,8 @@ fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
 use std::env::args;
 
 fn main() -> Result<()> {
+    println!("level 2 Integral Key Recovery Attack against 4 Round AES");
+
     balanced_prop();
 
     let verbose = true;

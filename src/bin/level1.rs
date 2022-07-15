@@ -23,13 +23,13 @@ fn main() {
 }
 
 fn show(table: &Vec<Vec<usize>>) {
-    print!("   | ");
+    print!("   |");
     for i in 0..256 {
-        print!(" {:02x}", i);
+        print!("  {:02x}", i);
     }
     println!("");
-    for _ in 0..256 {
-        print!("---");
+    for _ in 0..=256 {
+        print!("----");
     }
     println!("");
 

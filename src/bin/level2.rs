@@ -187,8 +187,14 @@ fn kr_sub(
 fn key_recovery(
     ciphers: &[[u8; 16]; 256],
     plain_texts: &[[u8; 16]; 256],
-) -> Option<[[GF256; 16]; 5]> {
+    verbose: bool,
+) -> (Option<[[GF256; 16]; 5]>, usize) {
     let guessed_keys = key_guess(ciphers);
+
+    let cand_num = guessed_keys.iter().map(|v| v.len()).reduce(|acc, x| acc * x).unwrap();
+    if verbose {
+        println!("Candidate key num: {}", cand_num);
+    }
 
     let mut result = None;
     let mut key_index = [0; 16];
@@ -201,7 +207,7 @@ fn key_recovery(
         &mut result,
     );
 
-    result
+    (result, cand_num)
 }
 
 fn inv_generate_round_keys(round4_key: &[GF256; 16]) -> [[GF256; 16]; 5] {
@@ -282,7 +288,7 @@ fn balanced_prop() {
     dump_array(&sum, "Balanced Property Sum Check for R3");
 }
 
-fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
+fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<(bool, usize)> {
     let mut rng = rand::thread_rng();
     let key: [u8; 16] = rng.gen();
 
@@ -316,7 +322,7 @@ fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
         }
     }
 
-    let rec_keys = key_recovery(&ciphers, &plain_texts);
+    let (rec_keys, cands_num) = key_recovery(&ciphers, &plain_texts, verbose);
 
     let rec_keys = match rec_keys {
         Some(k) => k,
@@ -333,7 +339,7 @@ fn integral_key_recovery_attack_for_r4_aes(verbose: bool) -> Result<bool> {
 
     let result = &keys[0] == &rec_keys[0];
 
-    Ok(result)
+    Ok((result, cands_num))
 }
 
 use std::env::args;
@@ -344,7 +350,7 @@ fn main() -> Result<()> {
     balanced_prop();
 
     let verbose = true;
-    let result = integral_key_recovery_attack_for_r4_aes(verbose)?;
+    let (result, _) = integral_key_recovery_attack_for_r4_aes(verbose)?;
     println!("{}", result);
 
     let mut args = args();
@@ -354,12 +360,15 @@ fn main() -> Result<()> {
         .unwrap_or(10);
 
     let mut success = 0;
+    let mut cands_num_sum = 0;
     for _ in 0..times {
-        let result = integral_key_recovery_attack_for_r4_aes(false)?;
+        let (result, cands_num) = integral_key_recovery_attack_for_r4_aes(false)?;
+        cands_num_sum += cands_num;
         success += if result { 1 } else { 0 };
     }
 
     println!("success: {}\nresult: {}", success, success == times);
+    println!("cands_num_avg: {}", cands_num_sum as f64 / times as f64);
 
     Ok(())
 }
